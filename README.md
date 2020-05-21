@@ -1,3 +1,16 @@
+# Apache Spark 2.4.4 Quantile Random Forest Patch
+
+To build:
+
+```shell
+cd mllib
+../build/mvn test
+cd ..
+sh -x makeQuantileRandomForestPatch.sh
+cd QUANTILE_RANDOM_FOREST_PATCH
+spark-submit --master 'local[*]' --jars quantileRandomForest.jar --py-files quantile_random_forests.py quantile_random_forest_example.py
+```
+
 # Apache Spark
 
 Spark is a fast and general cluster computing system for Big Data. It provides
