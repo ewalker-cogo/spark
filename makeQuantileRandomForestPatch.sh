@@ -1,7 +1,7 @@
 P=`pwd`
 mkdir -p QUANTILE_RANDOM_FOREST_PATCH
-cd mllib/target/scala-2.11/classes
-jar cvf $P/QUANTILE_RANDOM_FOREST_PATCH/quantileRandomForest.jar \
+cd mllib/target/scala-2.12/classes
+jar cvf $P/QUANTILE_RANDOM_FOREST_PATCH/quantileRandomForest_2.12.jar \
 org/apache/spark/ml/regression/QuantileRandomForest*.class \
 org/apache/spark/ml/tree/LearningNodeV2*.class \
 org/apache/spark/ml/tree/LeafNodeV2*.class \
