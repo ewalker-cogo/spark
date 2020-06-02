@@ -28,6 +28,7 @@ from pyspark.ml.feature import VectorIndexer
 from pyspark.ml.evaluation import RegressionEvaluator
 # $example off$
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import expr
 
 if __name__ == "__main__":
     spark = SparkSession\
@@ -57,23 +58,11 @@ if __name__ == "__main__":
     model = pipeline.fit(trainingData)
 
     # Make predictions.
-    model.stages[1].set_transform_mode("observations")
+    model.stages[1].set_transform_mode("distribution", bins = 10)
     predictions = model.transform(testData)
 
     # Select example rows to display.
-    predictions.select("prediction", "label", "features").show(5)
-
-    model.stages[1].set_transform_mode("predictions")
-    predictions = model.transform(testData)
-
-    # Select example rows to display.
-    predictions.select("prediction", "label", "features").show(5)
-
-    # Select (prediction, true label) and compute test error
-    ##evaluator = RegressionEvaluator(
-    ##    labelCol="label", predictionCol="prediction", metricName="rmse")
-    ##rmse = evaluator.evaluate(predictions)
-    ##print("Root Mean Squared Error (RMSE) on test data = %g" % rmse)
+    predictions.select(expr("prediction._1 as predicted_avg"), expr("prediction._2 as upper_bounds"), expr("prediction._3 as lower_bounds"), expr("prediction._4 as densities"), "label", "features").show(5, truncate = False)
 
     rfModel = model.stages[1]
     print(rfModel)  # summary only

@@ -17,6 +17,8 @@
 
 package org.apache.spark.ml.regression
 
+import scala.collection.mutable.{ArrayBuffer, PriorityQueue}
+
 import org.json4s.{DefaultFormats, JObject}
 import org.json4s.JsonDSL._
 
@@ -35,7 +37,6 @@ import org.apache.spark.mllib.tree.model.{RandomForestModel => OldRandomForestMo
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.functions._
-
 
 /**
  * <a href="http://en.wikipedia.org/wiki/Random_forest">Random Forest</a>
@@ -192,14 +193,18 @@ class QuantileRandomForestRegressionModel private[ml] (
   @Since("1.4.0")
   override def treeWeights: Array[Double] = _treeWeights
 
-  private var transformToObservations = true
+  private var transformType : String = "distribution"
+  private var quantileBins = 100
 
-  def setTransformMode(mode:String) : Unit = {
-    transformToObservations =
+  def setTransformMode(mode:String, bins: Int = 0) : Unit = {
+    transformType =
       mode match {
-        case "observations" => true
-        case "predictions" => false
-        case _ => throw new Exception("mode should be observations or predictions: " + mode)
+        case "observations" => mode
+        case "predictions" => mode
+        case "distribution" => {
+          quantileBins = bins
+          mode }
+        case _ => throw new Exception("mode should be observations or predictions or distribution: " + mode)
       }
   }
 
@@ -211,10 +216,13 @@ class QuantileRandomForestRegressionModel private[ml] (
     val obsUDF = udf { (features: Any) =>
       bcastModel.value.observations(features.asInstanceOf[Vector])
     }
-    if (transformToObservations) {
-      dataset.withColumn($(predictionCol), obsUDF(col($(featuresCol))))
-    } else {
-      dataset.withColumn($(predictionCol), predictUDF(col($(featuresCol))))
+    val distUDF = udf { (features: Any) =>
+      bcastModel.value.distribution(features.asInstanceOf[Vector])
+    }
+    transformType match {
+      case "observations" => dataset.withColumn($(predictionCol), obsUDF(col($(featuresCol))))
+      case "distribution" => dataset.withColumn($(predictionCol), distUDF(col($(featuresCol))))
+      case "predictions" => dataset.withColumn($(predictionCol), predictUDF(col($(featuresCol))))
     }
   }
 
@@ -236,6 +244,72 @@ class QuantileRandomForestRegressionModel private[ml] (
   def observations(features: Vector): Array[Array[Float]] = {
     import QuantileRandomForestImplicits._
     _trees.map(_.rootNode.predictImpl(features).getLabels.toArray)
+  }
+
+  def distribution(features: Vector) : (Double, ArrayBuffer[Double], ArrayBuffer[Double], ArrayBuffer[Double]) = {
+    import QuantileRandomForestImplicits._
+    var predictionSum : Double = 0.0
+    val forestWalker = ForestWalker()
+    val numTrees = _trees.size
+    for (tree <- _trees) {
+      val leafNode = tree.rootNode.predictImpl(features)
+      predictionSum += leafNode.prediction
+      forestWalker.snarfLabels(leafNode.getLabels, numTrees)
+    }
+    val epsilon : Double = 1.0E-12
+    var currentBin = 0
+    var currentTargetWeight = 1.0/(quantileBins.toDouble)
+    var totalWeight : Double = 0.0
+    var totalDensity : Double = 0.0
+    var currentBinWeight : Double = 0.0
+    val bin_densities = new ArrayBuffer[Double](quantileBins)
+    val lowestLow = forestWalker.peek
+    val bin_upper_bounds = new ArrayBuffer[Double](quantileBins)
+    val bin_lower_bounds = new ArrayBuffer[Double](quantileBins)
+    for (j <- 0 until quantileBins) {
+      bin_densities += 0.0
+      bin_upper_bounds += lowestLow
+      bin_lower_bounds += lowestLow
+    }
+    def closeBin(i: Int) : Unit = {
+      // hack to turn zero width to tiny width
+      if (bin_upper_bounds(i) == bin_lower_bounds(i)) {
+        if ((i > 0) && (bin_lower_bounds(i) < bin_upper_bounds(i-1))) {
+          bin_lower_bounds(i) = bin_upper_bounds(i-1)
+          bin_upper_bounds(i) = bin_lower_bounds(i)
+        }
+        bin_upper_bounds(i) += epsilon
+      } else {
+        if ((i > 0) && (bin_lower_bounds(i) < bin_upper_bounds(i-1))) {
+          bin_lower_bounds(i) = bin_upper_bounds(i-1)
+          if (bin_upper_bounds(i) < bin_lower_bounds(i)) {
+            bin_upper_bounds(i) = bin_lower_bounds(i) + epsilon
+          }
+        }
+      }
+
+      val width = bin_upper_bounds(i)-bin_lower_bounds(i)
+      val density = currentBinWeight / width
+      bin_densities(i) += density
+      totalDensity += density
+    }
+    for ((v, weight) <- forestWalker) {
+      totalWeight += weight
+      if (totalWeight > currentTargetWeight && (currentBin < quantileBins - 1)) {
+        closeBin(currentBin)
+        currentBin += 1
+        currentTargetWeight = (currentBin + 1).toDouble / quantileBins.toDouble
+        currentBinWeight = 0.0
+        bin_lower_bounds(currentBin) = v
+      }
+      bin_upper_bounds(currentBin) = v
+      currentBinWeight += weight
+    }
+    closeBin(currentBin)
+    for (j <- 0 until bin_densities.size) {
+      bin_densities(j) = bin_densities(j) / totalDensity
+    }
+    (predictionSum / numTrees.toDouble, bin_upper_bounds, bin_lower_bounds, bin_densities)
   }
 
   @Since("1.4.0")

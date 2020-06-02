@@ -27,7 +27,7 @@ object QuantileRandomForestImplicits {
   implicit class NodeWithLabels(n: Node) {
     def getLabels() : ArrayBuffer[Float] = {
       n match {
-        case ln: LeafNodeV2 => ln.getLabels()
+        case ln: LeafNodeV2 => ln.getSortedLabels
         case _ => null
       }
     }

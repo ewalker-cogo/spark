@@ -51,6 +51,13 @@ private[tree] class LearningNodeV2(
 
   def toNode: Node = toNode(prune = true)
 
+  def getLabels(): ArrayBuffer[Float] = {
+     labels match {
+       case None => ArrayBuffer[Float]()
+       case Some(ls) => ls
+     }
+   }
+
   /**
    * Convert this [[LearningNodeV2]] to a regular [[Node]], and recurse on any children.
    */
@@ -60,8 +67,8 @@ private[tree] class LearningNodeV2(
       assert(leftChild.nonEmpty && rightChild.nonEmpty && split.nonEmpty && stats != null,
         "Unknown error during Decision Tree learning.  Could not convert LearningNodeV2 to Node.")
       (leftChild.get.toNode(prune), rightChild.get.toNode(prune)) match {
-        case (l: LeafNodeV2, r: LeafNodeV2) if prune && l.prediction == r.prediction =>
-          new LeafNodeV2(l.prediction, stats.impurity, stats.impurityCalculator, Some(l.getLabels ++ r.getLabels))
+        case (l: LeafNodeV2, r: LeafNodeV2) if prune && l.prediction == r.prediction && l.getSortedLabels == r.getSortedLabels =>
+          new LeafNodeV2(l.prediction, stats.impurity, stats.impurityCalculator, (l.getSortedLabels ++ r.getSortedLabels).sortWith(_ < _))
         case (l, r) =>
           new InternalNode(stats.impurityCalculator.predict, stats.impurity, stats.gain,
             l, r, split.get, stats.impurityCalculator)
@@ -69,10 +76,10 @@ private[tree] class LearningNodeV2(
     } else {
       if (stats.valid) {
         new LeafNodeV2(stats.impurityCalculator.predict, stats.impurity,
-          stats.impurityCalculator, labels)
+          stats.impurityCalculator, getLabels.sortWith(_ < _))
       } else {
         // Here we want to keep same behavior with the old mllib.DecisionTreeModel
-        new LeafNodeV2(stats.impurityCalculator.predict, -1.0, stats.impurityCalculator, labels)
+        new LeafNodeV2(stats.impurityCalculator.predict, -1.0, stats.impurityCalculator, getLabels.sortWith(_ < _))
       }
     }
   }
