@@ -1,6 +1,8 @@
 # Apache Spark 2.4.4 Quantile Random Forest Patch
 
-To build:
+Quantile random forest python example is here:  https://github.com/ewalker-cogo/spark/blob/quantilerandomforest/examples/src/main/python/ml/quantile_random_forest_example.py.
+
+To build a jar, quantileRandomForest.jar, that extends Spark 2.4.4 to include support for quantile random forests:
 
 ```shell
 cd mllib
@@ -10,6 +12,7 @@ sh -x makeQuantileRandomForestPatch.sh
 cd QUANTILE_RANDOM_FOREST_PATCH
 spark-submit --master 'local[*]' --jars quantileRandomForest.jar --py-files quantile_random_forests.py quantile_random_forest_example.py
 ```
+`quantile_random_forests.py` is here:  https://github.com/ewalker-cogo/spark/blob/quantilerandomforest/python/pyspark/ml/quantile_random_forests.py
 
 # Apache Spark
 
