@@ -74,6 +74,8 @@ class QuantileRandomForestSuite extends SparkFunSuite with MLlibTestSparkContext
     assert(tree.rootNode.prediction === lp.label)
     import QuantileRandomForestImplicits._
     assert(ArrayBuffer[Float](1.0f,1.0f,1.0f,1.0f,1.0f) == tree.rootNode.getLabels)
+    import DecisionTreeModelImplicits._
+    assert(tree.toDebugStringV2.startsWith("DecisionTreeClassificationModel"))
 
     // Test with no categorical features
     val strategy2 = new OldStrategy(

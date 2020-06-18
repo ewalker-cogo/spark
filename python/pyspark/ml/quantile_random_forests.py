@@ -27,7 +27,7 @@ from pyspark.sql import DataFrame
 
 from pyspark.ml.regression import TreeRegressorParams
 
-from pyspark.ml.regression import RandomForestParams
+from pyspark.ml.regression import RandomForestParams, DecisionTreeRegressionModel
 
 @inherit_doc
 class QuantileRandomForestRegressor(JavaEstimator, HasFeaturesCol, HasLabelCol, HasPredictionCol, HasSeed,
@@ -165,3 +165,6 @@ class QuantileRandomForestRegressionModel(TreeEnsembleModel, JavaPredictionModel
         if mode == "distribution" and bins <= 0:
             raise Exception("bins must be nonzero")
         return self._call_java("setTransformMode", mode, bins)
+
+def decisionTreeToDebugStringV2(spark, dtree):
+    return spark._jvm.org.apache.spark.ml.tree.DecisionTreeModelDebug.toDebugStringV2(dtree._java_obj)

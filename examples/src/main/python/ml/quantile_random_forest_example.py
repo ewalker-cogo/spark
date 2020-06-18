@@ -23,7 +23,7 @@ from __future__ import print_function
 # $example on$
 from pyspark.ml import Pipeline
 #from pyspark.ml.regression import RandomForestRegressor
-from quantile_random_forests import QuantileRandomForestRegressor
+from quantile_random_forests import QuantileRandomForestRegressor, decisionTreeToDebugStringV2
 from pyspark.ml.feature import VectorIndexer
 from pyspark.ml.evaluation import RegressionEvaluator
 # $example off$
@@ -67,5 +67,7 @@ if __name__ == "__main__":
     rfModel = model.stages[1]
     print(rfModel)  # summary only
     # $example off$
+
+    print(decisionTreeToDebugStringV2(spark, rfModel.trees[0]))
 
     spark.stop()

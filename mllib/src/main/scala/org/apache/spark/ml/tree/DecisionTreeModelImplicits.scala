@@ -23,27 +23,14 @@ import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.mllib.tree.impurity.ImpurityCalculator
 import org.apache.spark.mllib.tree.model.{ImpurityStats, InformationGainStats => OldInformationGainStats, Node => OldNode, Predict => OldPredict}
 
-object QuantileRandomForestImplicits {
-  implicit class NodeWithLabels(n: Node) {
-    def getLabels() : ArrayBuffer[Float] = {
-      n match {
-        case ln: LeafNodeV2 => ln.getSortedLabels
-        case _ => null
-      }
-    }
-    def subtreeToStringV2(indentFactor: Int = 0): String = {
-      n match {
-        case inode : InternalNode => {
-          val prefix: String = " " * indentFactor
-          prefix + s"If (${QuantileRandomForestImplicitsHelper.splitToString(inode.split, left = true)}) t  \t(internal node stats: prediction = ${inode.prediction}, impurity = ${inode.impurity}, gain = ${inode.gain}, count = ${inode.impurityStats.count})\n" +
-          inode.leftChild.subtreeToString(indentFactor + 1) +
-          prefix + s"Else (${QuantileRandomForestImplicitsHelper.splitToString(inode.split, left = false)}) t  \t(internal node stats: prediction = ${inode.prediction}, impurity = ${inode.impurity}, gain = ${inode.gain}, count = ${inode.impurityStats.count})\n" +
-          inode.rightChild.subtreeToString(indentFactor + 1)
-        }
-        case _ => n.subtreeToString(indentFactor)
-      }
+object DecisionTreeModelImplicits {
+  implicit class TreeWithMoreDebug(n: DecisionTreeModel) {
+    /** Full description of model */
+    def toDebugStringV2: String = {
+      import QuantileRandomForestImplicits._
+      val header = n.toString + "\n"
+      header + n.rootNode.subtreeToStringV2(2)
     }
   }
 }
-
 
