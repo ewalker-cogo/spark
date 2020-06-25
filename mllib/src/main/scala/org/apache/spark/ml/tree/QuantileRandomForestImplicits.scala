@@ -40,6 +40,11 @@ object QuantileRandomForestImplicits {
           prefix + s"Else (${QuantileRandomForestImplicitsHelper.splitToString(inode.split, left = false)}) t  \t(internal node stats: prediction = ${inode.prediction}, impurity = ${inode.impurity}, gain = ${inode.gain}, count = ${inode.impurityStats.count})\n" +
           inode.rightChild.subtreeToStringV2(indentFactor + 1)
         }
+        case l2node: LeafNodeV2 => { l2node.subtreeToString(indentFactor) }
+        case lnode: LeafNode => {
+          val prefix: String = " " * indentFactor
+          prefix + s"Predict: ${lnode.prediction}\t(internal node stats: impurity = ${lnode.impurity}, count = ${lnode.impurityStats.count})\n"
+        }
         case _ => n.subtreeToString(indentFactor)
       }
     }
