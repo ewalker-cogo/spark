@@ -45,7 +45,7 @@ class LeafNodeV2 private[ml] (
 
   override private[tree] def subtreeToString(indentFactor: Int = 0): String = {
     val prefix: String = " " * indentFactor
-    prefix + s"Predict: $prediction\n"
+    prefix + s"Predict: $prediction\t(internal node stats: impurity = $impurity, count = ${impurityStats.count})\n"
   }
 
   override private[tree] def subtreeDepth: Int = 0
