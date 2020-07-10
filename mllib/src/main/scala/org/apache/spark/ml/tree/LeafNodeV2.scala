@@ -32,9 +32,9 @@ class LeafNodeV2 private[ml] (
     prediction: Double,
     impurity: Double,
     impurityStats: ImpurityCalculator,
-    sortedLabels: ArrayBuffer[Float]) extends LeafNode(prediction, impurity, impurityStats) {
+    quantiles:  LeafLabelQuantiles) extends LeafNode(prediction, impurity, impurityStats) {
 
-  def getSortedLabels(): ArrayBuffer[Float] = { sortedLabels }
+  def getSortedLabels(): ArrayBuffer[Float] = { quantiles.expose }
 
   override def toString: String =
     s"LeafNode(prediction = $prediction, impurity = $impurity)"
@@ -58,7 +58,7 @@ class LeafNodeV2 private[ml] (
   override private[ml] def maxSplitFeatureIndex(): Int = -1
 
   override private[tree] def deepCopy(): Node = {
-    new LeafNodeV2(prediction, impurity, impurityStats, sortedLabels)
+    new LeafNodeV2(prediction, impurity, impurityStats, quantiles)
   }
 }
 

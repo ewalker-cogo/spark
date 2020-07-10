@@ -159,12 +159,5 @@ class QuantileRandomForestRegressionModel(TreeEnsembleModel, JavaPredictionModel
         return self._call_java("featureImportances")
 
 
-    def set_transform_mode(self, mode, bins = 0):
-        if mode not in ("observations", "predictions", "distribution"):
-            raise Exception("bad transform mode: " + mode)
-        if mode == "distribution" and bins <= 0:
-            raise Exception("bins must be nonzero")
-        return self._call_java("setTransformMode", mode, bins)
-
 def decisionTreeToDebugStringV2(spark, dtree):
     return spark._jvm.org.apache.spark.ml.tree.DecisionTreeModelDebug.toDebugStringV2(dtree._java_obj)

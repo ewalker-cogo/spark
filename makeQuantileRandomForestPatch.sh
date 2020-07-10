@@ -1,8 +1,8 @@
 ## For 2.12 build, change: pom.xml and mllib/pom.xml
 P=`pwd`
-mkdir -p QUANTILE_RANDOM_FOREST_PATCH
+mkdir -p QUANTILE_RANDOM_FOREST_PATCH_QUANTILES
 cd mllib/target/scala-2.11/classes
-jar cvf $P/QUANTILE_RANDOM_FOREST_PATCH/quantileRandomForest.jar \
+jar cvf $P/QUANTILE_RANDOM_FOREST_PATCH_QUANTILES/quantileRandomForestQuantiles.jar \
 org/apache/spark/ml/regression/QuantileRandomForest*.class \
 org/apache/spark/ml/regression/TreeLabelWalker*.class \
 org/apache/spark/ml/regression/ForestWalker*.class \
@@ -12,8 +12,9 @@ org/apache/spark/ml/tree/QuantileRandomForestImplicits*.class \
 org/apache/spark/ml/tree/impl/QuantileRandomForest*.class \
 org/apache/spark/ml/tree/DecisionTreeModelDebug*.class \
 org/apache/spark/ml/tree/DecisionTreeModelImplicits*.class \
-org/apache/spark/ml/tree/QuantileRandomForestImplicitsHelper*.class
-Q=$P/QUANTILE_RANDOM_FOREST_PATCH/
+org/apache/spark/ml/tree/QuantileRandomForestImplicitsHelper*.class \
+org/apache/spark/ml/tree/LeafLabelQuantiles*.class
+Q=$P/QUANTILE_RANDOM_FOREST_PATCH_QUANTILES/
 cd $P
 cp python/pyspark/ml/quantile_random_forests.py $Q
 cp examples/src/main/python/ml/quantile_random*.py $Q

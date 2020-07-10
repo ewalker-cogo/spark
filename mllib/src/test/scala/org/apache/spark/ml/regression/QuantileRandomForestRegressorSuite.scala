@@ -49,54 +49,14 @@ class QuantileRandomForestRegressorSuite extends MLTest with DefaultReadWriteTes
   /////////////////////////////////////////////////////////////////////////////
   // Tests calling train()
   /////////////////////////////////////////////////////////////////////////////
-  def testSinglePrediction(model: QuantileRandomForestRegressionModel,
-    dataset: Dataset[_]): Unit = {
-    var observationsCol = "observations"
-    model.getObservations(dataset, observationsCol).select(model.getFeaturesCol, observationsCol)
-      .collect().foreach {
-      case Row(features: Vector, prediction: Seq[Seq[Float]]) => {
-        assert(prediction === model.observations(features))
-        //println(prediction.toString) 
-      }
-    }
-    observationsCol = "observations2"
-    model.setPredictionCol(observationsCol)
-    model.setTransformMode("observations")
-    model.transform(dataset).select(model.getFeaturesCol, observationsCol)
-      .collect().foreach {
-      case Row(features: Vector, prediction: Seq[Seq[Float]]) => {
-        assert(prediction === model.observations(features))
-        //println(prediction.toString) 
-      }
-    }
-  }
-
-  test("prediction on single instance") {
-    val rf = new QuantileRandomForestRegressor()
-      .setImpurity("variance")
-      .setMaxDepth(2)
-      .setMaxBins(10)
-      .setNumTrees(1)
-      .setFeatureSubsetStrategy("auto")
-      .setSeed(123)
-
-    val df = orderedLabeledPoints50_1000.toDF()
-    val model = rf.fit(df)
-    testSinglePrediction(model, df)
-  }
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Tests calling train()
-  /////////////////////////////////////////////////////////////////////////////
   def testSingleDistribution(model: QuantileRandomForestRegressionModel,
     dataset: Dataset[_]): Unit = {
     val observationsCol = "observations2"
     model.setPredictionCol(observationsCol)
-    model.setTransformMode("distribution", 10)
-    model.transform(dataset).select(model.getFeaturesCol, observationsCol + "._1", observationsCol + "._2", observationsCol + "._3", observationsCol + "._4")
+    model.transform(dataset).select(model.getFeaturesCol, observationsCol + "._1", observationsCol + "._2")
       .collect().foreach {
-      case Row(features: Vector, prediction: Double, upperBounds: WrappedArray[Double], lowerBounds: WrappedArray[Double], densities: WrappedArray[Double]) => {
-        assert((prediction,upperBounds,lowerBounds,densities) === model.distribution(features))
+      case Row(features: Vector, prediction: Double, quantiles: WrappedArray[Double]) => {
+        assert((prediction,quantiles) === model.distribution(features))
         //println(prediction.toString) 
       }
     }

@@ -58,11 +58,10 @@ if __name__ == "__main__":
     model = pipeline.fit(trainingData)
 
     # Make predictions.
-    model.stages[1].set_transform_mode("distribution", bins = 10)
     predictions = model.transform(testData)
 
     # Select example rows to display.
-    predictions.select(expr("prediction._1 as predicted_avg"), expr("prediction._2 as upper_bounds"), expr("prediction._3 as lower_bounds"), expr("prediction._4 as densities"), "label", "features").show(5, truncate = False)
+    predictions.select(expr("prediction._1 as predicted_avg"), expr("prediction._2 as quantiles"), "label", "features").show(5, truncate = False)
 
     rfModel = model.stages[1]
     print(rfModel)  # summary only
