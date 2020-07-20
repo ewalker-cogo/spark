@@ -18,6 +18,7 @@
 package org.apache.spark.ml.regression
 
 import scala.collection.mutable.{ArrayBuffer, PriorityQueue}
+import math.floor
 
 import org.json4s.{DefaultFormats, JObject}
 import org.json4s.JsonDSL._
@@ -213,6 +214,46 @@ class QuantileRandomForestRegressionModel private[ml] (
   }
 
   def distribution(features: Vector) : (Double, ArrayBuffer[Double]) = {
+    import QuantileRandomForestImplicits._
+    var predictionSum : Double = 0.0
+    val numTrees = _trees.size
+    val quantilesFromTrees = new ArrayBuffer[Float](numTrees * LeafLabelQuantiles.size)
+    var minimum = Float.MaxValue
+    var maximum = Float.MinValue
+
+    for (tree <- _trees) {
+      val leafNode = tree.rootNode.predictImpl(features)
+      predictionSum += leafNode.prediction
+      val leafQuantiles = leafNode.getLabels
+      if (leafQuantiles.length == 101) {
+        if (leafQuantiles(0) < minimum) {
+          minimum = leafQuantiles(0)
+        }
+        if (leafQuantiles(100) > maximum) {
+          maximum = leafQuantiles(100)
+        }
+        for (q <- 1 to 99) {
+          quantilesFromTrees += leafQuantiles(q)
+        }
+      }
+    }
+    val fromTreesSorted = quantilesFromTrees.sortWith(_ < _)
+    val quantiles = new ArrayBuffer[Double](LeafLabelQuantiles.size)
+
+    val x = fromTreesSorted
+    quantiles += minimum.toDouble
+    for (i <- 1 to 99) {
+      val p = i.toDouble / 100.0
+      val h = (x.size - 1).toDouble * p
+      val floor_h = floor(h)
+      quantiles += (x(floor_h.toInt).toDouble + (h - floor_h) * (x(floor_h.toInt + 1).toDouble - x(floor_h.toInt).toDouble)).toFloat
+      }
+    quantiles += maximum.toDouble
+
+    (predictionSum / numTrees.toDouble, quantiles)
+  }
+
+  def PREV_AVG_BASED_distribution(features: Vector) : (Double, ArrayBuffer[Double]) = {
     import QuantileRandomForestImplicits._
     var predictionSum : Double = 0.0
     val numTrees = _trees.size
